@@ -1,11 +1,60 @@
 ---
 name: scrip-programming
 description: Shell programming conventions for programs using the scrip project - error handling vocabulary, #include system, and testing patterns. Use when: (1) Creating a shell script written in scrip style; (2) Updating a shell script in the scrip style. Do not use when: (1) Asked to write a Bash script.
+allowed-tools: Bash(scrip *)
 ---
 
 # Shell Programming for scrip
 
 **First read the shell-programming skill if you haven't already.**
+
+## The `scrip` program
+
+The `scrip` command-line tool manages scrip library files and builds programs
+from source. Use it throughout the session.
+
+**First step:** run `scrip path` to see the library search path, then
+`scrip list` to see available modules.
+
+### Subcommands
+
+| Command | Purpose |
+|---------|---------|
+| `scrip path` | Print the library search path (colon-separated directories) |
+| `scrip list [regex]` | List library files, optionally filtered by regex on basename |
+| `scrip deps [file...]` | List all included dependencies in order of encounter |
+| `scrip code [file...]` | Print source with all `#include` directives resolved |
+| `scrip borrow destdir file...` | Copy included dependencies into a project directory |
+| `scrip prog script file...` | Build an executable from source (mode 0755) |
+| `scrip docs [file...]` | Print `#_#` help documentation from files |
+| `scrip help` | Print help for scrip subcommands |
+
+When no file arguments are given, `scrip code` and `scrip deps` read from
+standard input. This means you can pipe a template containing `#include`
+directives and get back fully resolved code:
+
+    printf '#include "shout.sh"\n#include "barf.sh"\n' | scrip code
+
+This is useful for creating standalone programs that bundle code from the
+scrip libraries.
+
+### When to use each
+
+- **Starting a session:** `scrip path` then `scrip list` to discover
+  what library modules are available
+- **Understanding a module:** Read the file directly from the path
+  returned by `scrip list`, or use `scrip docs file` for its help text
+- **Writing new code:** `scrip deps file` to check what a source file
+  already includes; `scrip code file` to see fully resolved source
+- **Adding a dependency:** `scrip borrow lib/ file` to copy a library
+  module into the project's lib/ directory
+- **Building:** `scrip prog output source` to build an executable from
+  a source file
+- **Bundling from stdin:** Pipe a template with `#include` lines to
+  `scrip code` to produce a standalone script
+
+Always prefer reading actual library source over relying on examples in
+this document. The library is the authoritative reference.
 
 ## Overview
 
