@@ -1,6 +1,6 @@
 ---
 name: scrip-programming
-description: Shell programming conventions for programs using the scrip project - error handling vocabulary, #include system, and testing patterns. Use when: (1) Creating a shell script written in scrip style; (2) Updating a shell script in the scrip style. Do not use when: (1) Asked to write a Bash script.
+description: Programming conventions for the scrip project - error handling vocabulary, #include system, and testing patterns. Components exist for shell (.sh), make (.mk), and awk (.awk). Use when: (1) Creating or updating a program that uses scrip components; (2) Writing a Makefile that includes scrip .mk components; (3) Writing awk code that includes scrip .awk components.
 allowed-tools: Bash(scrip *)
 ---
 
@@ -46,15 +46,37 @@ scrip libraries.
   returned by `scrip list`, or use `scrip docs file` for its help text
 - **Writing new code:** `scrip deps file` to check what a source file
   already includes; `scrip code file` to see fully resolved source
-- **Adding a dependency:** `scrip borrow lib/ file` to copy a library
-  module into the project's lib/ directory
+- **Using a component (default):** Use `scrip code file` to produce
+  fully resolved source, then place the relevant code into the target
+  file. Or pipe a template with `#include` lines to `scrip code` to
+  produce a standalone script from scratch.
+- **Borrowing (alternative):** `scrip borrow lib/ file` to copy a
+  library module and its dependencies into the project's `lib/`
+  directory — only when the project will maintain its own scrip-style
+  structure with `#include` statements and separate component files.
+  **Ask the user to confirm before choosing this approach.**
 - **Building:** `scrip prog output source` to build an executable from
-  a source file
-- **Bundling from stdin:** Pipe a template with `#include` lines to
-  `scrip code` to produce a standalone script
+  a source file (only relevant to borrowed/scrip-style projects)
 
 Always prefer reading actual library source over relying on examples in
 this document. The library is the authoritative reference.
+
+### Component Types
+
+The scrip library contains components in three languages, each
+identified by its file extension:
+
+| Extension | Language | Examples |
+|-----------|----------|----------|
+| `.sh` | POSIX shell | shout.sh, barf.sh, safe.sh, pipeline.sh |
+| `.mk` | make | help.mk, test.mk, needvar.mk, tex-pdf.mk |
+| `.awk` | awk | shout.awk, barf.awk |
+
+All three types use the same `#include` system and `#_#` documentation
+convention. Some functions have parallel implementations across
+languages (e.g. shout and barf exist as both `.sh` and `.awk`
+components). Use the extension matching the language of the file you
+are working in.
 
 ## Overview
 
@@ -221,9 +243,42 @@ Use `#` for function comments that should not appear in `help` output. Use `#_#`
 
 ## Code Organization
 
-### When to Create lib/ Modules
+### Using Components Inline (Preferred)
 
-Create new `.sh` files in `lib/` for:
+The normal way to use scrip program components is inline: resolve
+`#include` directives with `scrip code`, then place the output into
+the target file. This avoids creating a `lib/` directory and build
+step.
+
+**Workflow:**
+
+1. Find the component: `scrip list` then read its source
+2. Produce resolved code: `scrip code file` writes the file with all
+   includes rendered to stdout
+3. Place the output into the target file (which usually already exists)
+
+**From a template:**
+
+```sh
+printf '#include "shout.sh"\n#include "barf.sh"\n' | scrip code
+```
+
+This produces a standalone block of code that can be inserted into any
+shell script.
+
+### Borrowing into lib/ (Alternative)
+
+Use borrowing only when the project will maintain its own scrip-style
+structure — multiple programs sharing modules, ongoing development with
+a `src/` → `bin/` build step, or when it is important to keep the
+`#include` statements and separate component files. **If you think
+borrowing is the appropriate choice, ask the user to confirm before
+proceeding.**
+
+#### When to Create lib/ Modules
+
+Create new component files in `lib/` (`.sh`, `.mk`, or `.awk`
+depending on the language) for:
 
 1. **Reusable functions** - Used by multiple programs
 2. **Composable utilities** - Small, focused purpose
@@ -240,15 +295,19 @@ lib/pipewith.sh      - Dynamic pipeline construction
 
 ### Include Pattern
 
-**Source files** use `#include "filename"`:
+**Source files** use `#include "filename"`, with the extension matching
+the language of the including file:
 
 ```sh
 #!/bin/sh
 #include "usage.sh"
 #include "do_help.sh"
 #include "pipeline.sh"
+```
 
-# Your code here
+```make
+#include "help.mk"
+#include "test.mk"
 ```
 
 **Include resolution:**
@@ -258,10 +317,13 @@ lib/pipewith.sh      - Dynamic pipeline construction
 - Recursive - includes can contain includes
 - Absolute paths or `./` prefix bypass `SCRIP_PATH`
 
-A new project can borrow files located along `SCRIP_PATH`.
-Borrowed files should appear in a lib/ subdirectory of the project.
+A project that uses borrowing can copy files located along `SCRIP_PATH`
+into a `lib/` subdirectory with `scrip borrow lib/ file`.
 
-### Directory Structure
+### Directory Structure (Borrowed Projects)
+
+This structure applies to scrip-style projects that use borrowing.
+Inline usage does not require this layout.
 
 ```
 lib/           # Reusable modules (included via #include)
@@ -330,9 +392,14 @@ echo ""
 
 ## File Names
 
-Library module files use the `.sh` extension to indicate the implementation language, because the module is language specific.
+Library components use the file extension to identify their language:
+`.sh` for shell, `.mk` for make, `.awk` for awk. The extension tells
+both the `#include` system and the reader which language the component
+is written in.
 
-Top-level command-line programs never include an extension, because that is an implementation detail and should not be exposed in the command-line interface.
+Top-level command-line programs never include an extension, because
+that is an implementation detail and should not be exposed in the
+command-line interface.
 
 ## Real-World Examples
 
@@ -454,16 +521,16 @@ make build
 | Fatal error | `barf "fatal"` | To stderr, exit 111 |
 | Usage error | `usage "$0 args"` | To stderr, exit 100 |
 | Safe exec | `safe mv "$a" "$b"` | Barf on failure |
-| Include | `#include "foo.sh"` | Resolved via SCRIP_PATH |
+| Include | `#include "foo.sh"` | .sh, .mk, .awk — resolved via SCRIP_PATH |
 | Help doc | `#_# help text` | Extracted by do_help |
 | Subcommand | `do_foo() { ... }` | Called via "do_$@" |
-| Lib modules | `lib/foo.sh` | Reusable functions |
+| Lib modules | `lib/foo.sh`, `lib/bar.mk` | Reusable components |
 | Programs | `bin/program` | No extension |
 | Test diff | `diff tests/output tests/expected` | Verify tests |
 
 ## The Bottom Line
 
-**Follow shell-programming for POSIX and quoting. Use scrip's error vocabulary. Compose from lib/.**
+**Follow shell-programming for POSIX and quoting. Use scrip's error vocabulary. Prefer inline components via `scrip code`; borrow into lib/ only when the project calls for it.**
 
 This project values:
 - Explicit error vocabulary makes failures clear
