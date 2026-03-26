@@ -1,7 +1,15 @@
 ---
-name: scrip-programming
-description: Programming conventions for the scrip project - error handling vocabulary, #include system, and testing patterns. Components exist for shell (.sh), make (.mk), and awk (.awk). Use when: (1) Creating or updating a program that uses scrip components; (2) Writing a Makefile that includes scrip .mk components; (3) Writing awk code that includes scrip .awk components.
-allowed-tools: Bash(scrip *)
+name: scrip-programming:scrip-programming
+description: >-
+  This skill should be used when the user asks to "create a scrip program",
+  "use scrip components", "write a program with scrip", "add a scrip include",
+  "borrow a scrip component", or when creating or updating programs that use
+  scrip shell (.sh), make (.mk), or awk (.awk) components, the scrip error
+  handling vocabulary (shout, barf, usage, safe, catch), or the scrip #include
+  system.
+disable-model-invocation: false
+user-invocable: true
+allowed-tools: Read, Grep, Glob, Bash(scrip help *), Bash(scrip docs *), Bash(scrip deps *), Bash(scrip code *), Bash(scrip list *), Bash(scrip path *)
 ---
 
 # Shell Programming for scrip
