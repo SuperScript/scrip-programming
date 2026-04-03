@@ -510,6 +510,56 @@ barf "error"
 barf "error"
 ```
 
+### ❌ Manual exit instead of error vocabulary
+
+Never combine `shout` with a manual `exit`. The error vocabulary
+exists precisely to avoid this. Every exit path has a function:
+
+```sh
+# WRONG - any manual exit code
+shout "file not found: ${file}"; exit 111
+shout "file not found: ${file}"; exit 1
+shout "bad arguments"; exit 2
+
+# CORRECT - use the vocabulary
+barf "file not found: ${file}"       # exit 111
+usage "$0 <template> [<yaml>]"       # exit 100
+```
+
+### ❌ Bare external commands instead of safe
+
+Wrap every external command whose failure should be fatal in `safe`.
+This produces a clear error message ("cannot ...") with the correct
+exit code (111) automatically.
+
+```sh
+# WRONG - silent failure or unhelpful error
+jinjanate --quiet -f yaml "${tmpl}" "${yaml}"
+mkdir -p "${dir}"
+
+# CORRECT - coherent error on failure
+safe jinjanate --quiet -f yaml "${tmpl}" "${yaml}"
+safe mkdir -p "${dir}"
+```
+
+### ❌ Saving intermediate source files
+
+When using `scrip code` inline, pipe the source directly. Do not
+create source files under `src/` that must be separately maintained.
+
+```sh
+# WRONG - intermediate file
+scrip code src/program.sh > bin/program
+
+# CORRECT - pipe directly
+cat <<'SRC' | scrip code > bin/program
+#!/bin/sh
+#include "safe.sh"
+...
+SRC
+chmod 755 bin/program
+```
+
 ### ❌ Test Without Building
 
 ```sh
