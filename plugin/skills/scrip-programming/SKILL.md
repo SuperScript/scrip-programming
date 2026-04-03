@@ -14,7 +14,7 @@ allowed-tools: Read, Grep, Glob, Bash(scrip help *), Bash(scrip docs *), Bash(sc
 
 # Shell Programming for scrip
 
-**First read the shell-programming skill if you haven't already.**
+**Apply the shell-programming skill.**
 
 ## The `scrip` program
 
@@ -38,8 +38,8 @@ from source. Use it throughout the session.
 | `scrip help` | Print help for scrip subcommands |
 
 When no file arguments are given, `scrip code` and `scrip deps` read from
-standard input. This means you can pipe a template containing `#include`
-directives and get back fully resolved code:
+standard input. Pipe a template containing `#include` directives to get
+back fully resolved code:
 
     printf '#include "shout.sh"\n#include "barf.sh"\n' | scrip code
 
@@ -103,62 +103,17 @@ When asked explicitly to create a Bash script, or when writing shell scripts tha
 - Test with output diff against tests/expected
 - Include dependencies via #include
 
-## Error Handling Patterns
+## Error Handling
 
-The project uses a consistent error handling vocabulary:
+Read the library source for each error function before use:
 
-### shout - Print to stderr
-
-```sh
-#include "shout.sh"
-shout() { printf '%s\n' "$0: $*" >&2; }
-
-# Usage
-shout "warning: file not found"
-```
-
-### barf - Fatal error (exit 111)
-Exit 111 for temporary errors.
-
-```sh
-#include "barf.sh"
-barf() { shout "fatal: $*"; exit 111; }
-
-# Usage
-test -f "${file}" || barf "missing required file: ${file}"
-```
-
-### usage - Usage error (exit 100)
-Exit 100 for permanent errors.
-
-```sh
-#include "usage.sh"
-usage() { shout "usage: $*"; exit 100; }
-
-# Usage
-test $# -gt 1 || usage "$0 sep prog [sep prog ...]"
-```
-
-### safe - Execute or barf
-
-```sh
-#include "safe.sh"
-safe() { "$@" || barf "cannot $*"; }
-
-# Usage
-safe mkdir -p "$dir"
-safe mv "${temp}" "${output}"
-```
-
-### catch - Fail if stderr matches regex
-The `catch` function can run a command that executes a pipeline and detect errors in any pipeline component that prints a known pattern to standard error, such as commands called with `safe`.
-
-```sh
-#include "catch.sh"
-
-# Usage - exit 111 if command writes pattern to stderr
-catch "error:" some_command arg1 arg2
-```
+| Function | Shell | Awk |
+|----------|-------|-----|
+| shout | shout.sh | shout.awk |
+| barf | barf.sh | barf.awk |
+| usage | usage.sh | — |
+| safe | safe.sh | — |
+| catch | catch.sh | — |
 
 ### Error Hierarchy
 
@@ -169,6 +124,25 @@ barf     → stderr + exit 111 (temporary error)
 safe     → run command, barf on failure
 catch    → run command, barf if stderr matches pattern
 ```
+
+### Protecting a Pipeline with catch
+
+In a pipeline, only the exit status of the last command is visible.
+Wrap each component with `safe` so failures produce the `barf` error
+prefix on stderr, then use `catch` on the whole pipeline to detect it:
+
+```sh
+_do_work() {
+  safe producer "$1" | safe filter | safe consumer
+}
+
+do_work() {
+  catch "$0: fatal:" _do_work "$@"
+}
+```
+
+`catch` scans stderr for the regex `$0: fatal:` (the prefix `barf`
+produces). If any `safe`-wrapped component fails, `catch` exits 111.
 
 ## Function Design
 
@@ -279,9 +253,7 @@ shell script.
 Use borrowing only when the project will maintain its own scrip-style
 structure — multiple programs sharing modules, ongoing development with
 a `src/` → `bin/` build step, or when it is important to keep the
-`#include` statements and separate component files. **If you think
-borrowing is the appropriate choice, ask the user to confirm before
-proceeding.**
+`#include` statements and separate component files. **Ask the user to confirm before choosing this approach.**
 
 #### When to Create lib/ Modules
 
@@ -409,166 +381,31 @@ Top-level command-line programs never include an extension, because
 that is an implementation detail and should not be exposed in the
 command-line interface.
 
-## Real-World Examples
-
-### Atomic File Write
-
-```sh
-#include "atomic_to.sh"
-
-# Write output from program to path atomically
-atomic_to() {
-  local output="$1"
-  shift
-  local temp="$(mktemp "${output}.XXXXXX")"
-  "$@" > "${temp}" && mv "${temp}" "${output}" || {
-    local e=$?
-    rm -f "${temp}"
-    exit $e
-  }
-}
-
-# Usage
-atomic_to "output.txt" command args
-```
-
-### Pipeline Construction
-
-```sh
-#include "pipewith.sh"
-
-# Build dynamic pipeline with custom prefix
-pipewith_cmd() {
-  local sep="$2"
-  shift 2
-
-  local cmd=''
-  local i=3
-  local p='"$1"'
-  for a in "$@"
-  do
-    if test "$a" = "${sep}"
-    then
-      cmd="${cmd} |"
-      p='"$1"'
-    else
-      cmd="${cmd} ${p} \"\${$i}\""
-      p=''
-    fi
-    i=$(($i + 1))
-  done
-
-  printf '%s\n' "${cmd}"
-}
-
-pipewith() {
-  eval "$(pipewith_cmd "$@")"
-}
-```
-
-### Argument Validation
-
-```sh
-#include "usage.sh"
-#include "have_args.sh"
-
-# Return 0 if args has at least n entries
-have_args() {
-  test $# -ge 1 || usage "have_args count [args...]"
-  test "$1" -lt $#
-  return $?
-}
-
-# Usage in functions
-do_process() {
-  have_args 2 "$@" || usage "$0 process file1 file2"
-  # process files
-}
-```
-
 ## Common Mistakes
 
-### ❌ Wrong Error Handler
-
 ```sh
-# WRONG - inconsistent error reporting
-echo "error: missing file" >&2
-exit 1
+# Wrong error handler — use the vocabulary, not raw echo/exit
+echo "error" >&2; exit 1             # WRONG
+barf "missing file"                   # CORRECT
 
-# CORRECT - use project vocabulary
-barf "missing file"
-```
+# Missing #include — every function must be included before use
+barf "error"                          # WRONG - barf not defined
+#include "barf.sh"                    # CORRECT - include first
 
-### ❌ Missing #include
+# Manual exit — never combine shout with a manual exit
+shout "not found"; exit 111           # WRONG
+barf "not found"                      # CORRECT
 
-```sh
-# WRONG - barf not defined
-barf "error"
+# Bare commands — wrap in safe when failure should be fatal
+mkdir -p "${dir}"                     # WRONG - silent failure
+safe mkdir -p "${dir}"                # CORRECT
 
-# CORRECT - include dependencies
-#include "barf.sh"
-barf "error"
-```
-
-### ❌ Manual exit instead of error vocabulary
-
-Never combine `shout` with a manual `exit`. The error vocabulary
-exists precisely to avoid this. Every exit path has a function:
-
-```sh
-# WRONG - any manual exit code
-shout "file not found: ${file}"; exit 111
-shout "file not found: ${file}"; exit 1
-shout "bad arguments"; exit 2
-
-# CORRECT - use the vocabulary
-barf "file not found: ${file}"       # exit 111
-usage "$0 <template> [<yaml>]"       # exit 100
-```
-
-### ❌ Bare external commands instead of safe
-
-Wrap every external command whose failure should be fatal in `safe`.
-This produces a clear error message ("cannot ...") with the correct
-exit code (111) automatically.
-
-```sh
-# WRONG - silent failure or unhelpful error
-jinjanate --quiet -f yaml "${tmpl}" "${yaml}"
-mkdir -p "${dir}"
-
-# CORRECT - coherent error on failure
-safe jinjanate --quiet -f yaml "${tmpl}" "${yaml}"
-safe mkdir -p "${dir}"
-```
-
-### ❌ Saving intermediate source files
-
-When using `scrip code` inline, pipe the source directly. Do not
-create source files under `src/` that must be separately maintained.
-
-```sh
-# WRONG - intermediate file
-scrip code src/program.sh > bin/program
-
-# CORRECT - pipe directly
-cat <<'SRC' | scrip code > bin/program
+# Intermediate source files — pipe directly with inline use
+scrip code src/program.sh > bin/prog  # WRONG - extra file to maintain
+cat <<'SRC' | scrip code > bin/prog   # CORRECT - pipe directly
 #!/bin/sh
 #include "safe.sh"
-...
 SRC
-chmod 755 bin/program
-```
-
-### ❌ Test Without Building
-
-```sh
-# WRONG - stale binaries
-./bin/program  # might be old version
-
-# CORRECT - build first
-make build
-./bin/program
 ```
 
 ## Quick Reference
