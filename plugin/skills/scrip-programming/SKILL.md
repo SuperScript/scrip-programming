@@ -54,10 +54,9 @@ scrip libraries.
   returned by `scrip list`, or use `scrip docs file` for its help text
 - **Writing new code:** `scrip deps file` to check what a source file
   already includes; `scrip code file` to see fully resolved source
-- **Using a component (default):** Use `scrip code file` to produce
-  fully resolved source, then place the relevant code into the target
-  file. Or pipe a template with `#include` lines to `scrip code` to
-  produce a standalone script from scratch.
+- **Using a component (default):** Pipe a template with `#include`
+  lines to `scrip code` for initial assembly. Edit the target file
+  directly for subsequent changes unless the set of includes changes.
 - **Borrowing (alternative):** `scrip borrow lib/ file` to copy a
   library module and its dependencies into the project's `lib/`
   directory — only when the project will maintain its own scrip-style
@@ -232,21 +231,20 @@ The normal way to use scrip program components is inline: resolve
 the target file. This avoids creating a `lib/` directory and build
 step.
 
-**Workflow:**
-
-1. Find the component: `scrip list` then read its source
-2. Produce resolved code: `scrip code file` writes the file with all
-   includes rendered to stdout
-3. Place the output into the target file (which usually already exists)
-
-**From a template:**
+**Initial assembly:** Use `scrip code` to resolve `#include` directives
+into a standalone script. Pipe a template or pass a source file:
 
 ```sh
 printf '#include "shout.sh"\n#include "barf.sh"\n' | scrip code
 ```
 
-This produces a standalone block of code that can be inserted into any
-shell script.
+Place the output into the target file.
+
+**Subsequent edits:** Edit the target file directly. Rerun `scrip code`
+only when the set of included library components changes. When edits
+affect only the program logic and not the includes, direct edits are
+preferred — they avoid overwriting prior modifications to the resolved
+code.
 
 ### Borrowing into lib/ (Alternative)
 
