@@ -218,6 +218,9 @@ Help is extracted by `sed -n 's/^#_#/ /p'` - strips `#_#` prefix and prints.
 
 Always end a block of help lines with a line containing only `#_#`.
 
+For the style a `#_#` block is written in — what belongs in the body and
+what does not — read `references/help-blocks.md`.
+
 ### Function Comments
 
 Use `#` for function comments that should not appear in `help` output. Use `#_#` for function comments that should appear in `help` output.
