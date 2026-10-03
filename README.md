@@ -1,27 +1,29 @@
 # scrip-programming
 
-A [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code) that teaches Claude shell programming conventions for the [scrip](https://github.com/superscript/scrip) project.
+## Why it exists
 
-## What It Does
+This plugin teaches [Claude Code](https://docs.anthropic.com/en/docs/claude-code) the shell conventions of the [scrip](https://github.com/superscript/scrip) project.
 
-When installed, this plugin provides Claude with knowledge of scrip's programming patterns:
+## What you gain
 
-- **Error handling vocabulary** -- `shout`, `barf`, `usage`, `safe`, `catch`
-- **Module composition** via `#include`
-- **Subcommand routing** with `do_` prefix functions
-- **Help extraction** using `#_#` comment markers
-- **Output-based testing** with diff against expected output
+Use of the plugin gives Claude Code those conventions when it creates or changes a scrip-style shell script, and does not apply them to general Bash scripting.
 
-The skill activates when Claude is asked to create or modify shell scripts written in scrip style. It does not activate for general Bash scripting.
+## Who uses it
+
+People who write scrip programs in Claude Code use it to create and change scrip-style shell scripts.
 
 ## Installation
 
-Add this plugin to your Claude Code configuration:
+Add this plugin to Claude Code:
 
 ```sh
 claude plugin add superscript/scrip-programming
 ```
 
+## Day to day
+
+Ask Claude Code to create or change a shell script written in the scrip style. The conventions apply to that request. They do not apply to general Bash scripting.
+
 ## License
 
-BSD 3-Clause. See [LICENSE](LICENSE).
+The license is BSD 3-Clause. See [LICENSE](LICENSE).
