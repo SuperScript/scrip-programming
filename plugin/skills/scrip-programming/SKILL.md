@@ -99,7 +99,7 @@ When asked explicitly to create a Bash script, or when writing shell scripts tha
 - Follow the shell-programming skill for POSIX compliance and quoting
 - Use project error handling - shout/barf/usage/safe/catch
 - Document with #_# for help extraction
-- Test with output diff against tests/expected
+- Use the project's own testing semantics. One example is an output diff of tests/output against tests/expected.
 - Include dependencies via #include
 
 ## Error Handling
@@ -315,6 +315,8 @@ tests/         # Test suite
 
 ## Testing
 
+Use the project's own testing semantics. Nothing in this section requires a tests/output versus tests/expected basis. The layout, the steps, and the principles below are one example of that basis.
+
 ### Test Structure
 
 ```
@@ -422,7 +424,7 @@ SRC
 | Subcommand | `do_foo() { ... }` | Called via "do_$@" |
 | Lib modules | `lib/foo.sh`, `lib/bar.mk` | Reusable components |
 | Programs | `bin/program` | No extension |
-| Test diff | `diff tests/output tests/expected` | Verify tests |
+| Tests | the project's own semantics | One example: `diff tests/output tests/expected` |
 
 ## The Bottom Line
 
@@ -431,4 +433,4 @@ SRC
 This project values:
 - Explicit error vocabulary makes failures clear
 - Modular composition through #include
-- Output-based testing for reliability
+- The project's own testing semantics for reliability. One example is an output diff of tests/output against tests/expected.
