@@ -339,14 +339,16 @@ echo "==== Test description ===="
 echo ""
 ```
 
-**2. Run and capture expected output:**
+**2. Ask the user to build and capture expected output:**
 
 ```sh
 make build
 tests/run > tests/expected
 ```
 
-**3. Verify tests pass:**
+Confirm the change by reading `tests/expected`.
+
+**3. Ask the user to verify tests pass:**
 
 ```sh
 make tests
