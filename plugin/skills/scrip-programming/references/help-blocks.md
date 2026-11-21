@@ -50,8 +50,7 @@ Give the shape of an output line as a literal pattern:
 Name a config key exactly as config spells it, with the usage line's
 metavariable in place: `server.<server>.uri`, `add.template_directory`.
 
-A failure reads "Fail when ...", never naming the error vocabulary that
-produces it. State a failure only where it constrains use; most go unstated.
+State a failure only where it constrains execution; most failures go unstated.
 
 Plain text throughout: no backticks, no markdown.
 
